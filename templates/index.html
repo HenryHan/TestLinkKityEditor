@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>Testlink转换</title>
+	<link rel="stylesheet" type="text/css" href="../static/css/easyui.css">
+    <link rel="stylesheet" type="text/css" href="../static/css/icon.css">
+	<link href="../static/favicon.ico" type="image/x-icon" rel="shortcut icon">
+	<!-- bower:css -->
+	<link rel="stylesheet" href="../static/bower_components/bootstrap/dist/css/bootstrap.css" />
+	<link rel="stylesheet" href="../static/bower_components/codemirror/lib/codemirror.css" />
+	<link rel="stylesheet" href="../static/bower_components/hotbox/hotbox.css" />
+	<link rel="stylesheet" href="../static/node_modules/kityminder-core/dist/kityminder.core.css" />
+	<link rel="stylesheet" href="../static/bower_components/color-picker/dist/color-picker.min.css" />
+	<!-- endbower -->
+	<link rel="stylesheet" href="../static/kityminder.editor.min.css">
+
+	<style>
+		html, body {
+			margin: 0;
+			padding: 0;
+			height: 100%;
+			overflow: hidden;
+		}
+		h1.editor-title {
+			background: #393F4F;
+			color: white;
+			margin: 0;
+			height: 40px;
+			font-size: 14px;
+			line-height: 40px;
+			font-family: 'Hiragino Sans GB', 'Arial', 'Microsoft Yahei';
+			font-weight: normal;
+			padding: 0 20px;
+		}
+		div.minder-editor-container {
+			top: 40px;
+			bottom: 0;
+			left: 0;
+			right: 0;
+		}
+    </style>
+    <!-- bower:js -->
+    <script src="../static/bower_components/jquery/dist/jquery.js"></script>
+    <script src="../static/bower_components/bootstrap/dist/js/bootstrap.js"></script>
+    <script src="../static/bower_components/angular/angular.js"></script>
+    <script src="../static/bower_components/angular-bootstrap/ui-bootstrap-tpls.js"></script>
+    <script src="../static/bower_components/codemirror/lib/codemirror.js"></script>
+    <script src="../static/bower_components/codemirror/mode/xml/xml.js"></script>
+    <script src="../static/bower_components/codemirror/mode/javascript/javascript.js"></script>
+    <script src="../static/bower_components/codemirror/mode/css/css.js"></script>
+    <script src="../static/bower_components/codemirror/mode/htmlmixed/htmlmixed.js"></script>
+    <script src="../static/bower_components/codemirror/mode/markdown/markdown.js"></script>
+    <script src="../static/bower_components/codemirror/addon/mode/overlay.js"></script>
+    <script src="../static/bower_components/codemirror/mode/gfm/gfm.js"></script>
+    <script src="../static/bower_components/angular-ui-codemirror/ui-codemirror.js"></script>
+    <script src="../static/bower_components/marked/lib/marked.js"></script>
+    <script src="../static/bower_components/kity/dist/kity.min.js"></script>
+    <script src="../static/bower_components/hotbox/hotbox.js"></script>
+    <script src="../static/bower_components/json-diff/json-diff.js"></script>
+    <script src="../static/node_modules/kityminder-core/dist/kityminder.core.min.js"></script>
+    <script src="../static/bower_components/color-picker/dist/color-picker.min.js"></script>
+    <!-- endbower -->
+
+    <script src="../static/kityminder.editor.min.js"></script>
+    <script type="text/javascript" src="../static/js/jquery.min.js"></script>
+    <script type="text/javascript" src="../static/js/jquery.cookie.js"></script>
+    <script type="text/javascript" src="../static/js/jquery.easyui.min.js"></script>
+    <script type="text/javascript">
+        function exportkm(node_id=undefined,depth=5,confirm=true){
+            var node = $('#caselist').tree('getSelected');
+            if(node_id==undefined){
+                node_id=node.id
+            }
+            if(node_id){
+                $.get(("get_km?id="+node_id+"&tl_token="+$.cookie("tl_token"))+"&depth="+depth,function(data,status){
+                    if(data.hasOwnProperty("error")){
+                        aler(data["error"])
+                    }
+                    else{
+                        if(confirm&&window.current&&JSON.stringify(window.current)!=JSON.stringify(editor.minder.exportJson())){
+                            var r = window.confirm("当前脑图有修改未保存，确认导入？");
+                            if(r==false){
+                                return  
+                            }
+                        }
+                        editor.minder.importJson(data)
+                        window.current=editor.minder.exportJson()
+                    };
+                });
+            }
+            
+        }
+        function savekm(){
+            var aTag = document.createElement('a');
+            var jsonse = JSON.stringify(editor.minder.exportJson());
+            var blob = new Blob([jsonse], {type: "application/json"});
+            aTag.download = "testcases.km";
+            aTag.href = URL.createObjectURL(blob);
+            aTag.click();
+            URL.revokeObjectURL(blob);
+        }
+        function trigger(){
+            document.getElementById("btn_file").click();
+        }
+        function openkm(files){
+            var reader = new FileReader();
+            reader.readAsText(files[0]);
+            reader.onload = function(){
+                let json = JSON.parse(this.result);
+                editor.minder.importJson(json)
+         };
+        }
+        function settings(){
+            $('#dlg').dialog('open')
+            if($.cookie("tl_url"))
+            {
+                document.getElementById("tl_url").value=$.cookie("tl_url");
+            }
+            if($.cookie("tl_token"))
+            {
+                document.getElementById("tl_token").value=$.cookie("tl_token");
+            }
+            if($.cookie("project_id"))
+            {
+                document.getElementById("project_id").value=$.cookie("project_id");
+            }
+            if($.cookie("user_name"))
+            {
+                document.getElementById("user_name").value=$.cookie("user_name");
+            }
+        }
+        function save_settings(){
+            $.cookie("tl_url",document.getElementById("tl_url").value, { expires: 9999 });
+            $.cookie("tl_token",document.getElementById("tl_token").value, { expires: 9999 });
+            $.cookie("project_id",document.getElementById("project_id").value, { expires: 9999 });
+            $.cookie("user_name",document.getElementById("user_name").value, { expires: 9999 });
+            $('#dlg').dialog('close');
+            $('#caselist').tree('reload');
+        }
+        function preview(){
+            var km = editor.minder.exportJson()
+            if(!km["root"]["data"].hasOwnProperty("internal_id"))
+            {
+                alert("脑图根结点非已存在的结点，请先导出已存在的结点")
+                return              
+            }
+            $.ajax({
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                url: "update",
+                data: JSON.stringify({tl_token: $.cookie("tl_token"),is_preview:1,data: km}),
+                success: function (data) {
+                    $('#preview_dlg').dialog('open');
+                    $('#preview_table').empty()
+                    $('#preview_table').append("<tr><th>类型</th><th>名称</th><th>结果</th></tr>")
+                    data.forEach(function(e){
+                        $('#preview_table').append("<tr><td>"+e["type"]+"</td><td>"+e["name"]+"</td><td>"+e["result"]+"</td></tr>")
+                    })
+                },
+                dataType: "json"
+            });
+        }
+        function update_testlink(){
+            $('#preview_dlg').dialog('close');
+            var km = editor.minder.exportJson()
+            var node = $('#caselist').tree('getSelected');
+            var root_id;
+            if(km["root"]["data"].hasOwnProperty("internal_id"))
+            {
+                    root_id = km["root"]["data"]["internal_id"]              
+            }
+            else if(node&&node.id&&node.state){
+                root_id = node.id
+            }
+            $.ajax({
+                type: "POST",
+                contentType: "application/json; charset=utf-8",
+                url: "update",
+                root_id:root_id,
+                data: JSON.stringify({ tl_token: $.cookie("tl_token"),data: km}),
+                success: function (data) {
+                    if(data.hasOwnProperty("error")){
+                        alert(data["error"])
+                    }
+                    else{
+                        alert("导入成功")
+                        exportkm(this.root_id,1,false)
+                    };
+                },
+                dataType: "json"
+            });
+        }
+    </script>
+</head>
+<body>
+		<div class="easyui-layout" data-options="fit:true"> 
+            <div data-options="region:'west',collapsible:true" style="width:300px;padding:20px;" title="用例列表" >
+                <table><tr>
+                    <td>
+                        <button id="import" onclick="exportkm()">导出所有</button>
+                    </td>
+                    <td>&nbsp&nbsp&nbsp&nbsp</td>
+                    <td>
+                        <button id="preview" onclick="preview()">导入预览</button>
+                    </td>
+                </tr></table>
+				<ul id="caselist" class="easyui-tree" data-options="
+                url: 'tree_nodes',
+                method: 'get',
+                animate: true,
+                onBeforeLoad:function(node,param){
+                        param.tl_url = $.cookie('tl_url');
+                        param.tl_token = $.cookie('tl_token');
+                        param.project_id = $.cookie('project_id');
+                        param.user_name = $.cookie('user_name');
+                    },
+                onLoadSuccess:function(node, data){
+                        if(data.hasOwnProperty('error')){
+                            alert('出错：'+data['error'])
+                        }
+                },
+                onClick: function(node){
+                    exportkm(node.id,1)
+                }
+            ">
+            </div>
+			<div id="area" data-options="region:'center',tools:'#tt'" title="kityminder">
+                <div ng-app="kityminderDemo" ng-controller="MainController">
+                    <kityminder-editor on-init="initEditor(editor, minder)"></kityminder-editor>
+                </div> 
+			</div>
+        </div>
+        <div id="tt">
+            <a href="#" class="icon-setting" onclick="settings()"></a>
+            <a href="#" class="icon-edit" onclick="trigger()"></a>
+            <a href="#" class="icon-save" onclick="savekm()"></a>
+            <a href="#" class="icon-blank"></a>
+        </div>
+        <input type="file" id="btn_file" onchange="openkm(this.files)" style="display:none">
+        <div id="dlg" class="easyui-dialog" title="设置" data-options="iconCls:'icon-close',closed:true" style="width:400px;height:200px;padding:10px">
+                <table>
+                    <tr>
+                        <td>testlink接口链接：</td>
+                        <td><input value="" class="easyui-validatebox" type="text" id="tl_url" data-options="required:true"></input></td>
+                    </tr>
+                    <tr>
+                        <td>testlink用户token：</td>
+                        <td><input value="" class="easyui-validatebox" type="text" id="tl_token" data-options="required:true"></input></td>
+                    </tr>
+                    <tr>
+                        <td>testlink用户名：</td>
+                        <td><input value="" class="easyui-validatebox" type="text" id="user_name" data-options="required:true"></input></td>
+                    </tr>
+                    <tr>
+                        <td>项目ID：</td>
+                        <td><input value="" class="easyui-validatebox" type="text" id="project_id" data-options="required:true"></input></td>
+                    </tr>
+                </table>
+            <div style="text-align:center;padding:5px">
+                <button id="save" onclick="save_settings()">保存</button>
+            </div>
+            <div id="preview_dlg" class="easyui-dialog" title="导入预览" data-options="iconCls:'icon-close',closed:true" style="width:600px;height:200px;padding:10px">
+                <table id="preview_table" style="width: 500px;" align="center">
+                    
+                </table>
+            <div style="text-align:center;padding:5px">
+                <button id="save" onclick="update_testlink()">开始导入</button>
+            </div>
+        </div>
+</body>
+<script>
+    angular.module('kityminderDemo', ['kityminderEditor'])
+                .controller('MainController', function($scope) {
+                    $scope.initEditor = function(editor, minder) {
+                        window.editor = editor;
+                        window.minder = minder;
+                    };
+                });
+</script>
+</html>
