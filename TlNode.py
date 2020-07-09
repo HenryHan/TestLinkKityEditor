@@ -61,6 +61,8 @@ class TlNode():
 
     def to_testlink(self,tls,is_preview):
         preview=[]
+        if len(self.name.encode('utf8'))>99:
+            preview.append({"type":"目录","name":self.name,"result":"<font color='#FF0000'>名字超长</font>","fatal":"True"})
         if not self.id:
             preview.append({"type":"目录","name":self.name,"result":"新增"})
             if not is_preview:
@@ -204,6 +206,8 @@ class Case(TlNode):
         
     def to_testlink(self,tls,is_preview):
         preview=[]
+        if len(self.name.encode('utf8'))>99:
+            preview.append({"type":"测试用例","name":self.name,"result":"<font color='#FF0000'>名字超长</font>","fatal":"True"})
         if not self.id:
             preview.append({"type":"测试用例","name":self.name,"result":"新增"})
             if not is_preview:

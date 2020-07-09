@@ -10,11 +10,17 @@ class Converter():
         self.tls = TestlinkAPIClient(url, key)
         self.projectid=projectid
         self.user_name = user_name
+        self.get_projects()
+
+    def get_projects(self):
         projects = self.tls.getProjects()
+        arr=[]
         for project in projects:
+            arr.append({"value":project["id"],"label":(project["prefix"]+"："+project["name"])})
             if project["id"] == self.projectid:
                 self.project = Project(self.projectid,project["name"])
                 self.project.prefix=project["prefix"]
+        return json.dumps(arr)
 
     def get_tl_nodes(self,id=None,depth=3):
         self.top=None
@@ -40,10 +46,10 @@ class Converter():
             node.cur_depth=1
             node.get_children(self.tls,depth)
 
-    def to_tree_node(self):
+    def to_tree_node(self,key):
         results = []
         if self.top:
-            if self.top.id == self.projectid:
+            if not key:
                 node = self.top.to_tree()
                 node["children"]=[]
                 for child in self.top.children:

@@ -73,7 +73,7 @@
                 node_id=node.id
             }
             if(node_id){
-                $.get(("get_km?id="+node_id+"&tl_token="+$.cookie("tl_token"))+"&depth="+depth,function(data,status){
+                $.get(("get_km?id="+node_id+"&tl_token="+$.cookie("tl_token")+"&tl_url="+$.cookie("tl_url")+"&project_id="+$.cookie("project_id")+"&depth="+depth),function(data,status){
                     if(data.hasOwnProperty("error")){
                         aler(data["error"])
                     }
@@ -121,9 +121,13 @@
             {
                 document.getElementById("tl_token").value=$.cookie("tl_token");
             }
-            if($.cookie("project_id"))
+            if($.cookie("project_id")&&$.cookie("project_name"))
             {
-                document.getElementById("project_id").value=$.cookie("project_id");
+                $('#project').combobox('setValue',$.cookie("project_id"))
+                $('#project').combobox('setText',$.cookie("project_name"))
+            }
+            else{
+                $('#project').combobox('setText',"点击刷新获取列表")
             }
             if($.cookie("user_name"))
             {
@@ -133,10 +137,15 @@
         function save_settings(){
             $.cookie("tl_url",document.getElementById("tl_url").value, { expires: 9999 });
             $.cookie("tl_token",document.getElementById("tl_token").value, { expires: 9999 });
-            $.cookie("project_id",document.getElementById("project_id").value, { expires: 9999 });
+            $.cookie("project_id",$('#project').combobox('getValue'), { expires: 9999 });
+            $.cookie("project_name",$('#project').combobox('getText'), { expires: 9999 });
             $.cookie("user_name",document.getElementById("user_name").value, { expires: 9999 });
             $('#dlg').dialog('close');
             $('#caselist').tree('reload');
+            
+        }
+        function get_projects(){
+                $('#project').combobox('reload',("get_project_list?tl_token="+$.cookie("tl_token")+"&tl_url="+$.cookie("tl_url")));
         }
         function preview(){
             var km = editor.minder.exportJson()
@@ -149,14 +158,24 @@
                 type: "POST",
                 contentType: "application/json; charset=utf-8",
                 url: "update",
-                data: JSON.stringify({tl_token: $.cookie("tl_token"),is_preview:1,data: km}),
+                data: JSON.stringify({tl_token: $.cookie("tl_token"),tl_url: $.cookie("tl_url"),project_id: $.cookie("project_id"),user_name: $.cookie("user_name"),is_preview:1,data: km}),
                 success: function (data) {
                     $('#preview_dlg').dialog('open');
                     $('#preview_table').empty()
                     $('#preview_table').append("<tr><th>类型</th><th>名称</th><th>结果</th></tr>")
+                    var show = true
                     data.forEach(function(e){
                         $('#preview_table').append("<tr><td>"+e["type"]+"</td><td>"+e["name"]+"</td><td>"+e["result"]+"</td></tr>")
+                        if(e.hasOwnProperty("fatal")){
+                            show = false
+                            console.log(show)
+                        }
                     })
+                    $("#start_import").show()
+                    if(!show){
+                        console.log("hide")
+                        $("#start_import").hide()
+                    }
                 },
                 dataType: "json"
             });
@@ -178,7 +197,7 @@
                 contentType: "application/json; charset=utf-8",
                 url: "update",
                 root_id:root_id,
-                data: JSON.stringify({ tl_token: $.cookie("tl_token"),data: km}),
+                data: JSON.stringify({tl_token: $.cookie("tl_token"),tl_url: $.cookie("tl_url"),project_id: $.cookie("project_id"),user_name: $.cookie("user_name"),data: km}),
                 success: function (data) {
                     if(data.hasOwnProperty("error")){
                         alert(data["error"])
@@ -196,7 +215,9 @@
 <body>
 		<div class="easyui-layout" data-options="fit:true"> 
             <div data-options="region:'west',collapsible:true" style="width:300px;padding:20px;" title="用例列表" >
-                <table><tr>
+                <table>
+                    
+                    <tr>
                     <td>
                         <button id="import" onclick="exportkm()">导出所有</button>
                     </td>
@@ -222,6 +243,10 @@
                 },
                 onClick: function(node){
                     exportkm(node.id,1)
+                },
+                onBeforeCollapse: function(node){
+                    // 移除当前数据库节点下的所有子节点
+                    $(node.target).next('ul').remove();
                 }
             ">
             </div>
@@ -235,26 +260,31 @@
             <a href="#" class="icon-setting" onclick="settings()"></a>
             <a href="#" class="icon-edit" onclick="trigger()"></a>
             <a href="#" class="icon-save" onclick="savekm()"></a>
+            <a href="#" class="icon-help" onclick="$('#help').dialog('open')"></a>
             <a href="#" class="icon-blank"></a>
         </div>
         <input type="file" id="btn_file" onchange="openkm(this.files)" style="display:none">
         <div id="dlg" class="easyui-dialog" title="设置" data-options="iconCls:'icon-close',closed:true" style="width:400px;height:200px;padding:10px">
                 <table>
                     <tr>
-                        <td>testlink接口链接：</td>
-                        <td><input value="" class="easyui-validatebox" type="text" id="tl_url" data-options="required:true"></input></td>
+                        <td>API链接：</td>
+                        <td><input value="" class="easyui-validatebox" type="text" id="tl_url" style="width:300px;" data-options="required:true"></input></td>
+                        <td></td>
                     </tr>
                     <tr>
-                        <td>testlink用户token：</td>
-                        <td><input value="" class="easyui-validatebox" type="text" id="tl_token" data-options="required:true"></input></td>
+                        <td>API密钥：</td>
+                        <td><input value="" class="easyui-validatebox" type="text" id="tl_token" style="width:300px;" data-options="required:true"></input></td>
+                        <td></td>
                     </tr>
                     <tr>
-                        <td>testlink用户名：</td>
-                        <td><input value="" class="easyui-validatebox" type="text" id="user_name" data-options="required:true"></input></td>
+                        <td>用户名：</td>
+                        <td><input value="" class="easyui-validatebox" type="text" id="user_name" style="width:300px;" data-options="required:true"></input></td>
+                        <td></td>
                     </tr>
                     <tr>
-                        <td>项目ID：</td>
-                        <td><input value="" class="easyui-validatebox" type="text" id="project_id" data-options="required:true"></input></td>
+                        <td>项目名称：</td>
+                        <td><select class="easyui-combobox" style="width:300px;" data-options="valueField:'value',textField:'label'" id="project"></select></td>
+                        <td><img src="/static/css/icons/reload.png" onclick="get_projects()"></td>
                     </tr>
                 </table>
             <div style="text-align:center;padding:5px">
@@ -265,8 +295,38 @@
                     
                 </table>
             <div style="text-align:center;padding:5px">
-                <button id="save" onclick="update_testlink()">开始导入</button>
+                <button id="start_import" onclick="update_testlink()">开始导入</button>
             </div>
+        </div>
+        <div id="help" class="easyui-dialog" title="帮助信息" data-options="iconCls:'icon-close',closed:true" style="width:500px;height:200px">
+        <p><b>设置：</b></p>
+        <p>需要先设置testlink api的连接信息才能正常使用功能。点击右上角设置按钮：</p>
+        <ul>
+            <li><b>API链接</b>：http://<域名或IP>/lib/api/xmlrpc/v1/xmlrpc.php</li>
+            <li><b>API密钥</b>：登录testlink页面，在我的设置中找到"个人 API 访问密钥"，如果没有则点击"生成新的密钥"。</li>
+            <li><b>用户名</b>：登录testlink页面，在我的设置中找到"帐号"，把里面的值填入。</li>
+            <li><b>项目名称</b>：点右侧刷新按钮更新项目列表，然后从中选择需要操作的项目。</li>
+        </ul>
+        <p><b>导出：</b></p>
+        <ul>
+            <li>选择一个目录，点击“导出所有”，可以把该目录及子目录下所有的用例按脑图方式导出。</li>
+            <li>点击一个目录或者用例，只导出该结点信息。</li>
+            <li>如果要刷新目录结点下的内容，可以收起再展开该目录。</li>
+            <li>导出的脑图中，带"1"图标的结点为目录，带"9"图标的结点为测试用例，该图标只做标识，可随意增删</li>
+        </ul>
+        <p><b>编辑：</b></p>
+        <ul>
+            <li>已导出的结点中，自带了内部属性标识为系统已存在的结点，导入时会在testlink中更新相应的结点。复制结点粘贴后，内部属性会被清空，粘贴的结点被当作新创建的结点。<b>为防止打开旧文件带来的结点混乱，建议每次编辑前先导出，以前保存的脑图结点可以通过复制粘贴生成</b></li>
+            <li>用例结点名称中的用例编号只作展示，导入时会自动忽略，所以每个节点的用例编号修改无效</li>
+            <li>用例的模板可以参照已导出的结点，添加其它字段无效</li>
+            <li>用例可以通过拖动到其它目录改变其位置，而目录改变位置无效</li>
+        </ul>
+        <p><b>导入：</b></p>
+        <ul>
+            <li>点击"导入预览"，查看有变更的点，确认无误后再点击导入</li>
+            <li>新创建的结点，以子结点中是否有"steps"来判断是否用例，如果不是用例，则当作目录处理</li>
+            <li>暂不支持删除结点</li>
+        </ul>
         </div>
 </body>
 <script>
