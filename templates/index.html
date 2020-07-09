@@ -145,7 +145,7 @@
             
         }
         function get_projects(){
-                $('#project').combobox('reload',("get_project_list?tl_token="+$.cookie("tl_token")+"&tl_url="+$.cookie("tl_url")));
+                $('#project').combobox('reload',("get_project_list?tl_token="+document.getElementById("tl_token").value+"&tl_url="+document.getElementById("tl_url").value));
         }
         function preview(){
             var km = editor.minder.exportJson()
@@ -319,7 +319,7 @@
             <li>已导出的结点中，自带了内部属性标识为系统已存在的结点，导入时会在testlink中更新相应的结点。复制结点粘贴后，内部属性会被清空，粘贴的结点被当作新创建的结点。<b>为防止打开旧文件带来的结点混乱，建议每次编辑前先导出，以前保存的脑图结点可以通过复制粘贴生成</b></li>
             <li>用例结点名称中的用例编号只作展示，导入时会自动忽略，所以每个节点的用例编号修改无效</li>
             <li>用例的模板可以参照已导出的结点，添加其它字段无效</li>
-            <li>用例可以通过拖动到其它目录改变其位置，而目录改变位置无效</li>
+            <li>用例可以通过拖动到其它目录改变其位置；目录改变位置无效</li>
         </ul>
         <p><b>导入：</b></p>
         <ul>
